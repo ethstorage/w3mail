@@ -8,9 +8,7 @@
       Connect
     </button>
     <div v-else class="account">
-      {{ this.accountShort }}
-      &nbsp;|&nbsp;
-      {{ this.networkId === 3334 ? "Galileo" : "Mainnet" }}
+      {{ this.accountShort }}&nbsp;|&nbsp;QuarkChain L2 Testnet
     </div>
   </div>
 </template>
@@ -26,10 +24,10 @@ export class UnsupportedChainIdError extends Error {
   }
 }
 
-const chain = 3334;
+const chain = 43069;
 const chainID = `0x${chain.toString(16)}`;
-const nodes = ['https://galileo.web3q.io:8545']
-const explorers = [`https://explorer.galileo.web3q.io/`];
+const nodes = ['https://rpc.testnet.l2.quarkchain.io:8545']
+const explorers = [`https://explorer.testnet.l2.quarkchain.io/`];
 
 export default {
   name: "Wallet",
@@ -60,7 +58,7 @@ export default {
     ...mapActions(["setChainConfig", "setAccount", "setDriveKey", "setPublicKey"]),
     connectWallet() {
       if (!window.ethereum) {
-        this.$message.error('Can\'t setup the Web3Q network on metamask because window.ethereum is undefined');
+        this.$message.error('Can\'t setup the QuarkChain L2 Testnet on metamask because window.ethereum is undefined');
         return;
       }
       this.login();
@@ -140,10 +138,10 @@ export default {
           params: [
             {
               chainId: chainID,
-              chainName: 'Web3Q Galileo',
+              chainName: 'QuarkChain L2 Testnet',
               nativeCurrency: {
-                name: 'W3Q',
-                symbol: 'W3Q',
+                name: 'QKC',
+                symbol: 'QKC',
                 decimals: 18,
               },
               rpcUrls: nodes,

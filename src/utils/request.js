@@ -50,10 +50,9 @@ const request = async ({
   // Data need to be sliced if file > 475K
   let fileSize = content.length;
   let chunks = [];
-  if (fileSize > 475 * 1024) {
-    const chunkSize = Math.ceil(fileSize / (475 * 1024));
+  if (fileSize > 24 * 1024) {
+    const chunkSize = Math.ceil(fileSize / (24 * 1024));
     chunks = bufferChunk(content, chunkSize);
-    fileSize = fileSize / chunkSize;
   } else {
     chunks.push(content);
   }
@@ -66,16 +65,10 @@ const request = async ({
   let uploadState = true;
   for (const index in chunks) {
     const chunk = chunks[index];
-    let cost = 0;
-    if (fileSize > 24 * 1024 - 326) {
-      cost = Math.floor((fileSize + 326) / 1024 / 24);
-    }
     const hexData = '0x' + chunk.toString('hex');
     try {
       // file is remove or change
-      const tx = await fileContract.writeChunk(hexUuid, hexName, index, hexData, {
-        value: ethers.utils.parseEther(cost.toString())
-      });
+      const tx = await fileContract.writeChunk(hexUuid, hexName, index, hexData);
       console.log(`Transaction Id: ${tx.hash}`);
       const receipt = await tx.wait();
       if (!receipt.status) {

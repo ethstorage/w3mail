@@ -5,6 +5,9 @@ pragma solidity ^0.8.0;
 import "@openzeppelin/contracts/utils/Strings.sol";
 import "./FlatDirectory.sol";
 
+interface FlatDirectoryFactoryInterface {
+    function create() external returns (address);
+}
 
 contract SimpleW3Mail {
     using Strings for uint256;
@@ -44,11 +47,14 @@ contract SimpleW3Mail {
 
     string public constant defaultEmail = "Hi,<br><br>Congratulations for opening your first web3 email!<br><br>Advices For Security:<br>1. Do not trust the content or open links from unknown senders.<br>2. We will never ask for your private key.<br><br>W3Mail is in alpha.<br><br>Best regards,<br>W3Mail Team";
 
+    FlatDirectoryFactoryInterface factory;
+
     mapping(address => User) userInfos;
 
-    constructor() {
+    constructor(address _factory) {
         User storage user = userInfos[address(this)];
         user.publicKey = keccak256('official');
+        factory = FlatDirectoryFactoryInterface(_factory);
     }
 
     receive() external payable {}
@@ -58,8 +64,7 @@ contract SimpleW3Mail {
         require(user.fdContract == address(0), "Address is registered");
 
         user.publicKey = publicKey;
-        FlatDirectory fileContract = new FlatDirectory(0);
-        user.fdContract = address(fileContract);
+        user.fdContract = factory.create();
 
         // add default email
         // create email
