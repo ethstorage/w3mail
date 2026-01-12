@@ -26,7 +26,7 @@
             <div class="card-item">
               <p class="item-title">Register W3Mail</p>
               <p class="item-message">
-                Submit the public key and related information to the Web3Q for registration.
+                Submit the public key and related information to the Sepolia for registration.
               </p>
               <el-button type="warning" round class="home-btn" :disabled="!this.account" :loading="showLoading"
                          @click="onRegister">

@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: MIT
 
-pragma solidity ^0.8.0;
+pragma solidity ^0.8.24;
 
 import "@openzeppelin/contracts/utils/Strings.sol";
 
@@ -21,7 +21,7 @@ interface IERC5018 {
     }
 
     // Large storage methods
-    function write(bytes memory name, bytes memory data) external payable;
+    function write(bytes memory name, bytes memory data) external;
 
     function read(bytes memory name) external view returns (bytes memory, bool);
 
@@ -33,15 +33,16 @@ interface IERC5018 {
     function countChunks(bytes memory name) external view returns (uint256);
 
     // Chunk-based large storage methods
-    function writeChunk(
-        bytes memory name,
-        uint256 chunkId,
-        bytes memory data
-    ) external payable;
+    function writeChunkByCalldata(bytes memory name, uint256 chunkId, bytes memory data) external;
 
-    function writeChunks(bytes memory name, uint256[] memory chunkIds, uint256[] memory sizes) external payable;
+    function writeChunksByBlobs(bytes memory name, uint256[] memory chunkIds, uint256[] memory sizes) external payable;
 
     function readChunk(bytes memory name, uint256 chunkId) external view returns (bytes memory, bool);
+
+    function readChunksPaged(bytes memory name, uint256 startChunkId, uint256 limit)
+        external
+        view
+        returns (bytes[] memory chunks);
 
     function chunkSize(bytes memory name, uint256 chunkId) external view returns (uint256, bool);
 
@@ -49,17 +50,16 @@ interface IERC5018 {
 
     function truncate(bytes memory name, uint256 chunkId) external returns (uint256);
 
-    function refund() external;
-
-    function destruct() external;
-
     function getChunkHash(bytes memory name, uint256 chunkId) external view returns (bytes32);
 
     function getChunkHashesBatch(FileChunk[] memory fileChunks) external view returns (bytes32[] memory);
 
     function getChunkCountsBatch(bytes[] memory names) external view returns (uint256[] memory);
 
-    function getUploadInfo(bytes memory name) external view returns (StorageMode mode, uint256 chunkCount, uint256 storageCost);
+    function getUploadInfo(bytes memory name)
+        external
+        view
+        returns (StorageMode mode, uint256 chunkCount, uint256 storageCost);
 }
 
 contract SimpleW3Mail {
@@ -98,7 +98,8 @@ contract SimpleW3Mail {
         mapping(bytes => File) files;
     }
 
-    string public constant defaultEmail = "Hi,<br><br>Congratulations for opening your first web3 email!<br><br>Advices For Security:<br>1. Do not trust the content or open links from unknown senders.<br>2. We will never ask for your private key.<br><br>W3Mail is in alpha.<br><br>Best regards,<br>W3Mail Team";
+    string public constant defaultEmail =
+        "Hi,<br><br>Congratulations for opening your first web3 email!<br><br>Advices For Security:<br>1. Do not trust the content or open links from unknown senders.<br>2. We will never ask for your private key.<br><br>W3Mail is in alpha.<br><br>Best regards,<br>W3Mail Team";
 
     FlatDirectoryFactoryInterface factory;
 
@@ -106,7 +107,7 @@ contract SimpleW3Mail {
 
     constructor(address _factory) {
         User storage user = userInfos[address(this)];
-        user.publicKey = keccak256('official');
+        user.publicKey = keccak256("official");
         factory = FlatDirectoryFactoryInterface(_factory);
     }
 
@@ -125,11 +126,11 @@ contract SimpleW3Mail {
         dEmail.time = block.timestamp;
         dEmail.from = address(this);
         dEmail.to = msg.sender;
-        dEmail.uuid = 'default-email';
-        dEmail.title = 'Welcome to W3Mail!';
+        dEmail.uuid = "default-email";
+        dEmail.title = "Welcome to W3Mail!";
         // add email
         user.inboxEmails.push(dEmail);
-        user.inboxEmailIds['default-email'] = 1;
+        user.inboxEmailIds["default-email"] = 1;
     }
 
     function sendEmail(
@@ -139,11 +140,7 @@ contract SimpleW3Mail {
         bytes memory title,
         bytes calldata encryptData,
         bytes memory fileUuid
-    )
-        public
-        payable
-        isRegistered
-    {
+    ) public isRegistered {
         User storage toInfo = userInfos[toAddress];
         require(!isEncryption || toInfo.fdContract != address(0), "Unregistered users can only send unencrypted emails");
         User storage fromInfo = userInfos[msg.sender];
@@ -165,10 +162,10 @@ contract SimpleW3Mail {
 
         // write email
         IERC5018 fileContract = IERC5018(fromInfo.fdContract);
-        fileContract.writeChunk{value: msg.value}(getNewName(uuid, 'message'), 0, encryptData);
+        fileContract.writeChunkByCalldata(getNewName(uuid, "message"), 0, encryptData);
     }
 
-    function writeChunk(bytes memory uuid, bytes memory name, uint256 chunkId, bytes calldata data) public payable {
+    function writeChunk(bytes memory uuid, bytes memory name, uint256 chunkId, bytes calldata data) public {
         User storage user = userInfos[msg.sender];
         if (user.files[uuid].time == 0) {
             // first add file
@@ -176,18 +173,15 @@ contract SimpleW3Mail {
         }
 
         IERC5018 fileContract = IERC5018(user.fdContract);
-        fileContract.writeChunk{value: msg.value}(getNewName('file', uuid), chunkId, data);
+        fileContract.writeChunkByCalldata(getNewName("file", uuid), chunkId, data);
     }
 
     function removeContent(address from, address fromFdContract, bytes memory uuid, bytes memory fileUuid) private {
         IERC5018 fileContract = IERC5018(fromFdContract);
         // remove mail
-        fileContract.remove(getNewName(uuid, 'message'));
+        fileContract.remove(getNewName(uuid, "message"));
         // remove file
-        fileContract.remove(getNewName('file', fileUuid));
-        // claim stake token
-        fileContract.refund();
-        payable(from).transfer(address(this).balance);
+        fileContract.remove(getNewName("file", fileUuid));
     }
 
     function removeSentEmail(bytes memory uuid) public {
@@ -197,7 +191,7 @@ contract SimpleW3Mail {
         uint256 removeIndex = info.sentEmailIds[uuid] - 1;
         // remove content
         Email memory email = info.sentEmails[removeIndex];
-        if(userInfos[email.to].inboxEmailIds[uuid] == 0) {
+        if (userInfos[email.to].inboxEmailIds[uuid] == 0) {
             // if inbox is delete
             removeContent(msg.sender, info.fdContract, uuid, email.fileUuid);
         }
@@ -219,7 +213,7 @@ contract SimpleW3Mail {
         uint256 removeIndex = info.inboxEmailIds[uuid] - 1;
         // remove content
         Email memory email = info.inboxEmails[removeIndex];
-        if(userInfos[email.from].sentEmailIds[uuid] == 0) {
+        if (userInfos[email.from].sentEmailIds[uuid] == 0) {
             // if sent is delete
             removeContent(email.from, userInfos[email.from].fdContract, uuid, email.fileUuid);
         }
@@ -235,7 +229,7 @@ contract SimpleW3Mail {
     }
 
     function removeEmails(uint256 types, bytes[] memory uuids) public {
-        if(types == 1) {
+        if (types == 1) {
             for (uint256 i; i < uuids.length; i++) {
                 removeInboxEmail(uuids[i]);
             }
@@ -247,10 +241,12 @@ contract SimpleW3Mail {
     }
 
     function getNewName(bytes memory dir, bytes memory name) public pure returns (bytes memory) {
-        return abi.encodePacked(dir, '/', name);
+        return abi.encodePacked(dir, "/", name);
     }
 
-    function getInboxEmails() public view
+    function getInboxEmails()
+        public
+        view
         returns (
             bool[] memory isEncryptions,
             uint256[] memory times,
@@ -284,7 +280,9 @@ contract SimpleW3Mail {
         }
     }
 
-    function getSentEmails() public view
+    function getSentEmails()
+        public
+        view
         returns (
             bool[] memory isEncryptions,
             uint256[] memory times,
@@ -318,29 +316,33 @@ contract SimpleW3Mail {
         }
     }
 
-    function getEmailContent(address fromEmail, bytes memory uuid, uint256 chunkId) public view returns(bytes memory data) {
-        if(fromEmail == address(this) &&  keccak256(uuid) == keccak256('default-email')) {
+    function getEmailContent(address fromEmail, bytes memory uuid, uint256 chunkId)
+        public
+        view
+        returns (bytes memory data)
+    {
+        if (fromEmail == address(this) && keccak256(uuid) == keccak256("default-email")) {
             return bytes(defaultEmail);
         }
         IERC5018 fileContract = IERC5018(getFlatDirectory(fromEmail));
-        (data, ) = fileContract.readChunk(getNewName(uuid, bytes('message')), chunkId);
+        (data,) = fileContract.readChunk(getNewName(uuid, bytes("message")), chunkId);
     }
 
-    function getFile(address fromEmail, bytes memory uuid, uint256 chunkId) public view returns(bytes memory data) {
+    function getFile(address fromEmail, bytes memory uuid, uint256 chunkId) public view returns (bytes memory data) {
         IERC5018 fileContract = IERC5018(getFlatDirectory(fromEmail));
-        (data,) = fileContract.readChunk(getNewName('file', uuid), chunkId);
+        (data,) = fileContract.readChunk(getNewName("file", uuid), chunkId);
     }
 
     function countChunks(address fromEmail, bytes memory uuid) public view returns (uint256) {
         IERC5018 fileContract = IERC5018(getFlatDirectory(fromEmail));
-        return fileContract.countChunks(getNewName('file', uuid));
+        return fileContract.countChunks(getNewName("file", uuid));
     }
 
-    function getPublicKey(address userAddress) public view returns(bytes32 publicKey) {
+    function getPublicKey(address userAddress) public view returns (bytes32 publicKey) {
         return userInfos[userAddress].publicKey;
     }
 
-    function getFlatDirectory(address userAddress) internal view returns(address) {
+    function getFlatDirectory(address userAddress) internal view returns (address) {
         return userInfos[userAddress].fdContract;
     }
 }
