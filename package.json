@@ -10,35 +10,38 @@
   "dependencies": {
     "@metamask/eth-sig-util": "^4.0.1",
     "ascii85": "^1.0.2",
-    "bignumber.js": "^9.0.0",
-    "buefy": "^0.9.17",
-    "clipboard-copy": "^4.0.1",
-    "element-ui": "^2.15.6",
-    "email-validator": "^2.0.4",
-    "ethers": "^5.5.4",
-    "futoin-hkdf": "^1.3.3",
+    "bignumber.js": "^9.3.1",
+    "buefy": "^0.9.29",
+    "element-ui": "^2.15.14",
+    "ethers": "^5.8.0",
+    "futoin-hkdf": "^1.5.3",
     "js-file-download": "^0.4.12",
-    "marked": "^4.0.18",
-    "sass": "^1.26.10",
-    "sass-loader": "^9.0.2",
-    "siwe": "^1.1.6",
+    "marked": "^4.3.0",
+    "sass": "^1.49.9",
+    "sass-loader": "^9.0.3",
     "uuid": "^8.3.2",
-    "vue": "^2.6.11",
+    "vue": "^2.7.16",
     "vue-async-computed": "^3.9.0",
     "vue-quill-editor": "^3.0.6",
-    "vue-router": "^3.2.0",
-    "vuex": "^3.4.0",
-    "web3": "^1.3.0"
+    "vue-router": "^3.6.5",
+    "vuex": "^3.6.2"
   },
   "devDependencies": {
-    "@vue/cli-plugin-babel": "~4.5.7",
-    "@vue/cli-plugin-eslint": "~4.5.7",
-    "@vue/cli-service": "~4.5.7",
+    "@vue/cli-plugin-babel": "~5.0.9",
+    "@vue/cli-plugin-eslint": "~5.0.9",
+    "@vue/cli-service": "~5.0.9",
+    "assert": "^2.1.0",
     "babel-eslint": "^10.1.0",
-    "eslint": "^6.7.2",
-    "eslint-plugin-vue": "^6.2.2",
-    "vue-template-compiler": "^2.6.11",
-    "w3q-deployer": "^1.4.3"
+    "buffer": "^6.0.3",
+    "crypto-browserify": "^3.12.1",
+    "eslint": "^7.32.0",
+    "eslint-plugin-vue": "^8.7.1",
+    "process": "^0.11.10",
+    "stream-browserify": "^3.0.0",
+    "vm-browserify": "^1.1.2"
+  },
+  "resolutions": {
+    "serialize-javascript": "^7.0.5"
   },
   "eslintConfig": {
     "root": true,
@@ -52,7 +55,9 @@
     "parserOptions": {
       "parser": "babel-eslint"
     },
-    "rules": {}
+    "rules": {
+      "vue/multi-word-component-names": "off"
+    }
   },
   "browserslist": [
     "> 1%",
